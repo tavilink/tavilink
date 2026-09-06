@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#09090b">
+  <title>Tavilink</title>
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiVGF2aWxpbmsiLCJzaG9ydF9uYW1lIjoiVGF2aWxpbmsiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzA5MDkwYiIsInRoZW1lX2NvbG9yIjoiIzA5MDkwYiJ9">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <style>
+    :root {
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+      --accent: #06b6d4;
+      --accent-hover: #0891b2;
+      --nav-bg: rgba(255,255,255,0.9);
+      --input-bg: rgba(0,0,0,0.05);
+      --danger: #ef4444;
+    }
+    .dark {
+      --bg-primary: #09090b;
+      --bg-secondary: #18181b;
+      --bg-card: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --border-color: rgba(255,255,255,0.1);
+      --accent: #22d3ee;
+      --accent-hover: #06b6d4;
+      --nav-bg: rgba(0,0,0,0.9);
+      --input-bg: rgba(255,255,255,0.1);
+      --danger: #f87171;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .theme-transition { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+    @keyframes pulse-heart { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+    .animate-heart { animation: pulse-heart 0.35s ease-in-out; }
+
+    @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .animate-spin-slow { animation: spin-slow 10s linear infinite; }
+
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .animate-marquee { animation: marquee 12s linear infinite; }
+
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .animate-slide-up { animation: slide-up 0.3s ease-out; }
+
+    @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .animate-fade-in { animation: fade-in 0.4s ease-out; }
+
+    @keyframes float-heart {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5) rotate(-15deg); }
+      50% { opacity: 1; transform: translate(-50%, -150%) scale(1.2) rotate(0deg); }
+      100% { opacity: 0; transform: translate(-50%, -300%) scale(0.8) rotate(15deg); }
+    }
+    .float-heart {
+      position: absolute;
+      pointer-events: none;
+      animation: float-heart 0.8s ease-out forwards;
+      z-index: 50;
+      filter: drop-shadow(0 0 8px rgba(239,68,68,0.6));
+    }
+
+    .range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--input-bg);
+      outline: none;
+    }
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-primary);
+    }
+
+    .filter-btn.active { ring: 2px solid var(--accent); transform: scale(1.05); }
+
+    .leaflet-popup-content-wrapper { background: var(--bg-card); color: var(--text-primary); border-radius: 12px; }
+    .leaflet-popup-tip { background: var(--bg-card); }
+
+    .country-search-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.2s;
+    }
+    .country-search-item:hover {
+      background: var(--input-bg);
+    }
+    .country-search-item:last-child {
+      border-bottom: none;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--input-bg) 25%, var(--border-color) 50%, var(--input-bg) 75%);
+      background-size: 200% 100%;
+      animation: skeleton 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes skeleton {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .post-media { object-fit: cover; width: 100%; }
+    .video-container video { width: 100%; height: 100%; object-fit: cover; }
+
+    #map { height: 100%; width: 100%; z-index: 1; }
+    .leaflet-control-attribution { font-size: 8px !important; }
+  </style>
+</head>
+<body class="dark antialiased overflow-hidden">
+  <div id="app" class="mx-auto max-w-md h-screen relative theme-transition shadow-2xl overflow-hidden border-x" style="background-color: var(--bg-primary); border-color: var(--border-color);">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[80] px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl opacity-0 pointer-events-none transition-all duration-300 transform -translate-y-2" style="background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color);">
+      <span id="toast-msg"></span>
+    </div>
+
+    <!-- Splash / Login Screen -->
+    <div id="splash-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-8 theme-transition" style="background-color: var(--bg-primary);">
+      <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center mb-6 shadow-2xl shadow-cyan-500/30 animate-fade-in">
+        <i class="ph ph-globe-hemisphere-west text-5xl text-white"></i>
+      </div>
+      <h1 class="text-4xl font-black tracking-tight mb-2 animate-fade-in" style="animation-delay: 0.1s;">Tavilink</h1>
+      <p class="text-sm theme-transition mb-8 animate-fade-in" style="color: var(--text-secondary); animation-delay: 0.2s;" data-t="discover">Discover the world's hidden gems</p>
+
+      <div class="w-full max-w-xs space-y-3 animate-fade-in" style="animation-delay: 0.3s;">
+        <button onclick="handleGoogleLogin()" class="w-full flex items-center justify-center gap-3 bg-white text-gray-700 font-semibold py-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md active:scale-95 transition-all">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.33v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.11z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          <span data-t="continueGoogle">Continue with Google</span>
+        </button>
+
+        <button onclick="handleAppleLogin()" class="w-full flex items-center justify-center gap-3 bg-black text-white font-semibold py-3 rounded-xl border border-gray-800 shadow-sm hover:shadow-md active:scale-95 transition-all">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-2.06 1.26-1.65 4.18.22 5.04-.57 1.5-1.31 2.99-2.27 4.17zm-5.85-15.1c.07-2.04 1.76-3.79 3.8-3.94.29 2.32-1.93 4.48-3.8 3.94z"/>
+          </svg>
+          <span data-t="continueApple">Continue with Apple</span>
+        </button>
+
+        <div class="flex items-center gap-3 my-4">
+          <div class="flex-1 h-px theme-transition" style="background-color: var(--border-color);"></div>
+          <span class="text-xs theme-transition" style="color: var(--text-secondary);">or</span>
+          <div class="flex-1 h-px theme-transition" style="background-color: var(--border-color);"></div>
+        </div>
+
+        <input type="text" id="login-username" data-t-placeholder="chooseUsername" placeholder="Choose a username" class="w-full rounded-xl px-4 py-3 text-sm outline-none theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+        <input type="email" id="login-email" placeholder="Email" class="w-full rounded-xl px-4 py-3 text-sm outline-none theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+        <input type="password" id="login-password" placeholder="Password" class="w-full rounded-xl px-4 py-3 text-sm outline-none theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+
+        <label class="flex items-start gap-2 mt-2 cursor-pointer">
+          <input type="checkbox" id="terms-check" class="mt-0.5 w-4 h-4 rounded accent-cyan-400">
+          <span class="text-xs theme-transition" style="color: var(--text-secondary);">
+            <span data-t="agreeTerms">I agree to the</span> 
+            <button onclick="showTermsFromSplash(event)" class="text-cyan-400 underline">Terms & Conditions</button> 
+            <span data-t="andPrivacy">and Privacy Policy</span>
+          </span>
+        </label>
+
+        <button onclick="handleEmailLogin()" class="w-full bg-gradient-to-r from-cyan-400 to-blue-600 text-black font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/25 active:scale-95 transition-transform" data-t="getStarted">
+          Get Started
+        </button>
+        <button onclick="handleAnonymousLogin()" class="w-full py-3 rounded-xl text-sm font-medium transition theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+          Continue as Guest
+        </button>
+      </div>
+    </div>
+
+    <!-- Terms & Conditions Modal -->
+    <div id="terms-modal" class="fixed inset-0 z-[70] hidden">
+      <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeTerms()"></div>
+      <div class="absolute inset-x-0 bottom-0 top-12 max-w-md mx-auto rounded-t-3xl theme-transition flex flex-col animate-slide-up" style="background-color: var(--bg-secondary);">
+        <div class="flex items-center justify-between p-4 border-b theme-transition" style="border-color: var(--border-color);">
+          <h3 class="font-bold text-lg" style="color: var(--text-primary);" data-t="terms">Terms & Conditions</h3>
+          <button onclick="closeTerms()" class="p-2 rounded-full transition" style="color: var(--text-secondary);"><i class="ph ph-x text-xl"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 space-y-4 text-sm leading-relaxed scrollbar-hide" style="color: var(--text-secondary);">
+          <h4 class="font-bold text-base" style="color: var(--text-primary);">1. Acceptance of Terms</h4>
+          <p>By accessing or using Tavilink, you agree to be bound by these Terms and Conditions. If you disagree with any part of the terms, you may not access the service.</p>
+          <h4 class="font-bold text-base" style="color: var(--text-primary);">2. User Content</h4>
+          <p>You retain ownership of any content you post on Tavilink. By posting, you grant Tavilink a non-exclusive, royalty-free license to use, display, and distribute your content within the app.</p>
+          <h4 class="font-bold text-base" style="color: var(--text-primary);">3. Prohibited Content</h4>
+          <p>Users may not post content that is illegal, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, or otherwise objectionable. We reserve the right to remove any content that violates these terms.</p>
+          <h4 class="font-bold text-base" style="color: var(--text-primary);">4. Privacy</h4>
+          <p>Your privacy is important to us. Please review our Privacy Policy to understand how we collect, use, and safeguard your personal information.</p>
+          <h4 class="font-bold text-base" style="color: var(--text-primary);">5. Termination</h4>
+          <p>We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+          <h4 class="font-bold text-base" style="color: var(--text-primary);">6. Changes to Terms</h4>
+          <p>We reserve the right to modify or replace these Terms at any time. It is your responsibility to review these Terms periodically for changes.</p>
+          <p class="text-xs pt-4" style="color: var(--text-secondary); opacity: 0.7;">Last updated: July 2026</p>
+        </div>
+        <div class="p-4 border-t theme-transition" style="border-color: var(--border-color);">
+          <button onclick="acceptTerms()" class="w-full bg-gradient-to-r from-cyan-400 to-blue-600 text-black font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform" data-t="getStarted">I Agree</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language Selector Modal -->
+    <div id="language-modal" class="fixed inset-0 z-[70] hidden">
+      <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeLanguageModal()"></div>
+      <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto rounded-t-3xl p-4 pb-8 animate-slide-up theme-transition" style="background-color: var(--bg-secondary);">
+        <div class="w-12 h-1 rounded-full mx-auto mb-4 theme-transition" style="background-color: var(--border-color);"></div>
+        <h3 class="font-bold text-lg mb-4 text-center" style="color: var(--text-primary);" data-t="language">Select Language</h3>
+        <div class="space-y-2" id="language-list"></div>
+        <button onclick="closeLanguageModal()" class="w-full py-3.5 rounded-xl font-semibold text-sm mt-4 theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);" data-t="cancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header id="header" class="hidden fixed top-0 left-0 right-0 z-40 backdrop-blur-xl border-b h-14 flex items-center justify-between px-4 max-w-md mx-auto theme-transition" style="background-color: var(--nav-bg); border-color: var(--border-color);">
+      <button onclick="goBack()" class="theme-transition" style="color: var(--text-secondary);"><i class="ph ph-caret-left text-xl"></i></button>
+      <h1 class="text-lg font-extrabold tracking-wide absolute left-1/2 -translate-x-1/2" id="header-title" style="color: var(--text-primary);">Tavilink</h1>
+      <div class="w-8"></div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main" class="h-full w-full overflow-hidden relative"></main>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-xl border-t h-16 flex items-center justify-around max-w-md mx-auto theme-transition" style="background-color: var(--nav-bg); border-color: var(--border-color);">
+      <button onclick="setView('home')" class="flex flex-col items-center gap-0.5 transition" id="nav-home">
+        <i class="ph ph-house text-2xl"></i>
+        <span class="text-[10px] font-medium" data-t="home">Home</span>
+      </button>
+      <button onclick="setView('explore')" class="flex flex-col items-center gap-0.5 transition" id="nav-explore">
+        <i class="ph ph-compass text-2xl"></i>
+        <span class="text-[10px] font-medium" data-t="explore">Explore</span>
+      </button>
+      <button onclick="setView('upload')" class="flex flex-col items-center justify-center -mt-5">
+        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 border-4 theme-transition" style="border-color: var(--bg-primary);">
+          <i class="ph ph-plus text-2xl text-white font-bold"></i>
+        </div>
+      </button>
+      <button onclick="setView('map')" class="flex flex-col items-center gap-0.5 transition" id="nav-map">
+        <i class="ph ph-map-trifold text-2xl"></i>
+        <span class="text-[10px] font-medium" data-t="map">Map</span>
+      </button>
+      <button onclick="setView('profile')" class="flex flex-col items-center gap-0.5 transition" id="nav-profile">
+        <i class="ph ph-user text-2xl"></i>
+        <span class="text-[10px] font-medium" data-t="profile">Profile</span>
+      </button>
+    </nav>
+
+    <!-- Comments Modal -->
+    <div id="comments-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeComments()"></div>
+      <div class="absolute bottom-0 left-0 right-0 rounded-t-3xl h-[75%] max-w-md mx-auto flex flex-col animate-slide-up border-t theme-transition" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+        <div class="flex items-center justify-between p-4 border-b theme-transition" style="border-color: var(--border-color);">
+          <h3 class="font-bold text-lg" style="color: var(--text-primary);" data-t="comments">Comments</h3>
+          <button onclick="closeComments()" class="p-2 rounded-full transition" style="color: var(--text-secondary);"><i class="ph ph-x text-xl"></i></button>
+        </div>
+        <div id="comments-list" class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide"></div>
+        <div class="p-4 border-t theme-transition flex gap-3" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+          <img src="" id="comment-avatar" class="w-8 h-8 rounded-full object-cover">
+          <div class="flex-1 relative">
+            <input type="text" id="comment-input" data-t-placeholder="addComment" placeholder="Add a comment..." class="w-full rounded-full px-4 py-2.5 pr-12 text-sm outline-none transition theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+            <button onclick="submitComment()" class="absolute right-1 top-1/2 -translate-y-1/2 font-semibold text-sm px-3 py-1" style="color: var(--accent);" data-t="post">Post</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Post Options Modal -->
+    <div id="post-options-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closePostOptions()"></div>
+      <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto rounded-t-3xl p-4 pb-8 space-y-2 animate-slide-up theme-transition" style="background-color: var(--bg-secondary);">
+        <div class="w-12 h-1 rounded-full mx-auto mb-4 theme-transition" style="background-color: var(--border-color);"></div>
+        <div id="post-options-list" class="space-y-1"></div>
+        <button onclick="closePostOptions()" class="w-full py-3.5 rounded-xl font-semibold text-sm mt-2 theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);" data-t="cancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Share Sheet Modal -->
+    <div id="share-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeShare()"></div>
+      <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto rounded-t-3xl p-4 pb-8 animate-slide-up theme-transition" style="background-color: var(--bg-secondary);">
+        <div class="w-12 h-1 rounded-full mx-auto mb-4 theme-transition" style="background-color: var(--border-color);"></div>
+        <h3 class="font-bold text-lg mb-4 text-center" style="color: var(--text-primary);" data-t="share">Share to</h3>
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <button onclick="shareTo('facebook')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-[#1877F2] flex items-center justify-center text-white text-2xl"><i class="ph ph-facebook-logo"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">Facebook</span>
+          </button>
+          <button onclick="shareTo('twitter')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-black flex items-center justify-center text-white text-2xl border border-white/10"><i class="ph ph-x-logo"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">X</span>
+          </button>
+          <button onclick="shareTo('whatsapp')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center text-white text-2xl"><i class="ph ph-whatsapp-logo"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">WhatsApp</span>
+          </button>
+          <button onclick="shareTo('telegram')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full bg-[#0088cc] flex items-center justify-center text-white text-2xl"><i class="ph ph-telegram-logo"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">Telegram</span>
+          </button>
+          <button onclick="shareTo('copy')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);"><i class="ph ph-link"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">Copy Link</span>
+          </button>
+          <button onclick="shareTo('sms')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);"><i class="ph ph-chat-text"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">SMS</span>
+          </button>
+          <button onclick="shareTo('email')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);"><i class="ph ph-envelope"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">Email</span>
+          </button>
+          <button onclick="shareTo('more')" class="flex flex-col items-center gap-2">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);"><i class="ph ph-dots-three"></i></div>
+            <span class="text-xs" style="color: var(--text-secondary);">More</span>
+          </button>
+        </div>
+        <button onclick="closeShare()" class="w-full py-3.5 rounded-xl font-semibold text-sm theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);" data-t="cancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Video Editor Modal -->
+    <div id="editor-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/90 backdrop-blur-md"></div>
+      <div class="absolute inset-0 max-w-md mx-auto flex flex-col theme-transition" style="background-color: var(--bg-secondary);">
+        <div class="flex items-center justify-between p-4 border-b theme-transition" style="border-color: var(--border-color);">
+          <button onclick="closeEditor()" class="theme-transition" style="color: var(--text-secondary);"><i class="ph ph-x text-xl"></i></button>
+          <h3 class="font-bold text-lg" style="color: var(--text-primary);" data-t="editVideo">Edit Video</h3>
+          <button onclick="applyEditorChanges()" class="text-cyan-400 font-bold text-sm" data-t="download">Save</button>
+        </div>
+        <div class="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6">
+          <div class="relative rounded-2xl overflow-hidden aspect-[9/16] bg-black max-h-[50vh] mx-auto">
+            <video id="editor-video" src="" class="w-full h-full object-cover" style="filter: none;" loop muted playsinline></video>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-secondary);" data-t="trim">Trim</label>
+              <span class="text-xs font-mono" style="color: var(--text-secondary);" id="trim-time">0:00 - 0:15</span>
+            </div>
+            <div class="relative h-12 rounded-xl overflow-hidden mb-3" style="background-color: var(--bg-primary);">
+              <div id="trim-track" class="absolute inset-y-2 left-4 right-4 rounded-lg overflow-hidden flex gap-0.5">
+                <div class="flex-1 h-full bg-white/10"></div><div class="flex-1 h-full bg-white/20"></div><div class="flex-1 h-full bg-white/10"></div>
+                <div class="flex-1 h-full bg-white/20"></div><div class="flex-1 h-full bg-white/10"></div><div class="flex-1 h-full bg-white/20"></div>
+                <div class="flex-1 h-full bg-white/10"></div><div class="flex-1 h-full bg-white/20"></div>
+              </div>
+              <div id="trim-start-handle" class="absolute top-0 bottom-0 w-1 bg-cyan-400 cursor-ew-resize" style="left: 10%;"></div>
+              <div id="trim-end-handle" class="absolute top-0 bottom-0 w-1 bg-cyan-400 cursor-ew-resize" style="left: 80%;"></div>
+            </div>
+            <input type="range" id="trim-start" min="0" max="100" value="10" class="range-slider mb-2" oninput="updateTrim()">
+            <input type="range" id="trim-end" min="0" max="100" value="80" class="range-slider" oninput="updateTrim()">
+          </div>
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wider mb-3 block" style="color: var(--text-secondary);" data-t="filters">Filters</label>
+            <div class="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+              <button onclick="setFilter('none')" class="filter-btn flex-shrink-0 w-16 text-center active"><div class="w-16 h-16 rounded-xl overflow-hidden mb-1 bg-gray-200"><div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200"></div></div><span class="text-[10px]" data-t="original">Original</span></button>
+              <button onclick="setFilter('grayscale(100%)')" class="filter-btn flex-shrink-0 w-16 text-center"><div class="w-16 h-16 rounded-xl overflow-hidden mb-1 bg-gray-200"><div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 grayscale"></div></div><span class="text-[10px]">B&W</span></button>
+              <button onclick="setFilter('sepia(60%) contrast(1.2)')" class="filter-btn flex-shrink-0 w-16 text-center"><div class="w-16 h-16 rounded-xl overflow-hidden mb-1 bg-gray-200"><div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 sepia contrast-125"></div></div><span class="text-[10px]">Warm</span></button>
+              <button onclick="setFilter('hue-rotate(180deg) saturate(1.3)')" class="filter-btn flex-shrink-0 w-16 text-center"><div class="w-16 h-16 rounded-xl overflow-hidden mb-1 bg-gray-200"><div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 hue-rotate-180 saturate-150"></div></div><span class="text-[10px]">Cool</span></button>
+              <button onclick="setFilter('saturate(1.8) brightness(1.1)')" class="filter-btn flex-shrink-0 w-16 text-center"><div class="w-16 h-16 rounded-xl overflow-hidden mb-1 bg-gray-200"><div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 saturate-200 brightness-110"></div></div><span class="text-[10px]">Vivid</span></button>
+              <button onclick="setFilter('contrast(0.9) sepia(30%) brightness(1.1)')" class="filter-btn flex-shrink-0 w-16 text-center"><div class="w-16 h-16 rounded-xl overflow-hidden mb-1 bg-gray-200"><div class="w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 contrast-90 sepia brightness-110"></div></div><span class="text-[10px]">Vintage</span></button>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wider mb-3 block" style="color: var(--text-secondary);" data-t="adjust">Adjust</label>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <i class="ph ph-sun text-lg" style="color: var(--text-secondary);"></i>
+                <span class="text-xs w-16" style="color: var(--text-secondary);" data-t="brightness">Brightness</span>
+                <input type="range" min="50" max="150" value="100" class="range-slider flex-1" oninput="adjustVideo('brightness', this.value)">
+              </div>
+              <div class="flex items-center gap-3">
+                <i class="ph ph-drop text-lg" style="color: var(--text-secondary);"></i>
+                <span class="text-xs w-16" style="color: var(--text-secondary);" data-t="contrast">Contrast</span>
+                <input type="range" min="50" max="150" value="100" class="range-slider flex-1" oninput="adjustVideo('contrast', this.value)">
+              </div>
+              <div class="flex items-center gap-3">
+                <i class="ph ph-palette text-lg" style="color: var(--text-secondary);"></i>
+                <span class="text-xs w-16" style="color: var(--text-secondary);" data-t="saturation">Saturation</span>
+                <input type="range" min="50" max="150" value="100" class="range-slider flex-1" oninput="adjustVideo('saturate', this.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Edit Modal -->
+    <div id="profile-edit-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeProfileEdit()"></div>
+      <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto rounded-t-3xl h-[85%] flex flex-col animate-slide-up border-t theme-transition" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+        <div class="flex items-center justify-between p-4 border-b theme-transition" style="border-color: var(--border-color);">
+          <button onclick="closeProfileEdit()" class="theme-transition" style="color: var(--text-secondary);"><i class="ph ph-x text-xl"></i></button>
+          <h3 class="font-bold text-lg" style="color: var(--text-primary);" data-t="editProfile">Edit Profile</h3>
+          <button onclick="saveProfileEdit()" class="text-cyan-400 font-bold text-sm" data-t="save">Save</button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+          <div class="relative h-32 rounded-2xl overflow-hidden theme-transition" style="background-color: var(--input-bg);">
+            <img id="edit-cover-preview" src="" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <button onclick="document.getElementById('edit-cover-input').click()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/30 transition">
+                <i class="ph ph-camera text-lg"></i>
+              </button>
+            </div>
+            <input type="file" id="edit-cover-input" accept="image/*" class="hidden" onchange="handleEditCover(event)">
+          </div>
+
+          <div class="flex justify-center -mt-10 relative z-10">
+            <div class="relative">
+              <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-400 to-purple-500 p-1">
+                <img id="edit-avatar-preview" src="" class="w-full h-full rounded-full object-cover border-2 theme-transition" style="border-color: var(--bg-secondary);">
+              </div>
+              <button onclick="document.getElementById('edit-avatar-input').click()" class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-lg hover:scale-110 transition">
+                <i class="ph ph-camera text-sm"></i>
+              </button>
+              <input type="file" id="edit-avatar-input" accept="image/*" class="hidden" onchange="handleEditAvatar(event)">
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-medium mb-1.5 block theme-transition" style="color: var(--text-secondary);">Display Name</label>
+              <input type="text" id="edit-display-name" class="w-full rounded-xl px-4 py-3 text-sm outline-none transition theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+            </div>
+            <div>
+              <label class="text-xs font-medium mb-1.5 block theme-transition" style="color: var(--text-secondary);">Username</label>
+              <input type="text" id="edit-username" class="w-full rounded-xl px-4 py-3 text-sm outline-none transition theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+            </div>
+            <div>
+              <label class="text-xs font-medium mb-1.5 block theme-transition" style="color: var(--text-secondary);" data-t="bio">Bio</label>
+              <textarea id="edit-bio" rows="3" class="w-full rounded-xl p-3 text-sm outline-none resize-none transition theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);"></textarea>
+            </div>
+          </div>
+
+          <button onclick="showTerms()" class="w-full py-3 rounded-xl text-sm font-medium transition theme-transition flex items-center justify-center gap-2" style="background-color: var(--input-bg); color: var(--text-primary);">
+            <i class="ph ph-file-text"></i> <span data-t="terms">Terms & Conditions</span>
+          </button>
+
+          <button onclick="openLanguageModal()" class="w-full py-3 rounded-xl text-sm font-medium transition theme-transition flex items-center justify-center gap-2" style="background-color: var(--input-bg); color: var(--text-primary);">
+            <i class="ph ph-translate"></i> <span data-t="language">Select Language</span>
+          </button>
+
+          <button onclick="toggleTheme()" class="w-full py-3 rounded-xl text-sm font-medium transition theme-transition flex items-center justify-center gap-2" style="background-color: var(--input-bg); color: var(--text-primary);">
+            <i class="ph ph-moon" id="theme-icon"></i> <span id="theme-text" data-t="darkMode">Dark Mode</span>
+          </button>
+
+          <button onclick="handleLogout()" class="w-full py-3 rounded-xl text-sm font-medium transition theme-transition flex items-center justify-center gap-2 text-red-400" style="background-color: rgba(239,68,68,0.1);">
+            <i class="ph ph-sign-out"></i> <span data-t="logout">Log Out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-[90] hidden flex items-center justify-center" style="background-color: var(--bg-primary);">
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-sm font-medium" style="color: var(--text-secondary);">Loading...</span>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+// ===================== FIREBASE CONFIG =====================
+// TAVILINK PRODUCTION CONFIG - DO NOT SHARE
+const firebaseConfig = {
+  apiKey: "AIzaSyDRc1L2U6czCLnbb1xKHF6hGVQE17nVTGs",
+  authDomain: "tavilink-app.firebaseapp.com",
+  projectId: "tavilink-app",
+  storageBucket: "tavilink-app.firebasestorage.app",
+  messagingSenderId: "330802399522",
+  appId: "1:330802399522:web:ca9b0963d7caa4d6857d7b",
+  measurementId: "G-5N60PE9M0B"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+// Enable offline persistence
+db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+  if (err.code === 'failed-precondition') {
+    console.log('Persistence failed: multiple tabs open');
+  } else if (err.code === 'unimplemented') {
+    console.log('Persistence not available');
+  }
+});
+
+// ===================== STATE & DATA =====================
+let currentUser = null;
+let currentUserData = null;
+let postsCache = [];
+let currentPostId = null;
+let currentView = 'home';
+let activeCategory = 'all';
+let viewHistory = [];
+let isDark = true;
+let currentLang = 'en';
+let selectedFile = null;
+let selectedCategory = null;
+let editingPostId = null;
+let editorFilter = 'none';
+let editorBrightness = 100;
+let editorContrast = 100;
+let editorSaturate = 100;
+let mapInstance = null;
+let mapMarkers = [];
+let videoObserver = null;
+let unsubscribes = [];
+let lastPostDoc = null;
+let isLoadingPosts = false;
+
+const DEFAULT_AVATAR = 'https://ui-avatars.com/api/?name=User&background=22d3ee&color=000';
+
+const categories = [
+  { id: 'all', icon: 'ph-squares-four', label: 'All' },
+  { id: 'nature', icon: 'ph-tree-palm', label: 'Nature' },
+  { id: 'city', icon: 'ph-buildings', label: 'City' },
+  { id: 'food', icon: 'ph-bowl-food', label: 'Food' },
+  { id: 'beach', icon: 'ph-waves', label: 'Beach' },
+  { id: 'mountain', icon: 'ph-mountains', label: 'Mountain' },
+  { id: 'culture', icon: 'ph-temple', label: 'Culture' },
+  { id: 'adventure', icon: 'ph-person-simple-hike', label: 'Adventure' }
+];
+
+// ===================== TRANSLATIONS =====================
+const translations = {
+  en: {
+    home: 'Home', explore: 'Explore', map: 'Map', profile: 'Profile',
+    upload: 'New Post', comments: 'Comments', share: 'Share',
+    follow: 'Follow', following: 'Following', edit: 'Edit',
+    delete: 'Delete', report: 'Report', save: 'Save', saved: 'Saved',
+    repost: 'Repost', like: 'Like', likes: 'likes',
+    search: 'Search places, restaurants, nature...',
+    caption: 'Caption', location: 'Location', category: 'Category',
+    bio: 'Bio', posts: 'Posts', followers: 'Followers',
+    logout: 'Log Out', terms: 'Terms & Conditions',
+    discover: 'Discover the world\'s hidden gems',
+    getStarted: 'Get Started', continueGoogle: 'Continue with Google',
+    continueApple: 'Continue with Apple', agreeTerms: 'I agree to the',
+    andPrivacy: 'and Privacy Policy', chooseUsername: 'Choose a username',
+    selectPhoto: 'Tap to select photo or video',
+    maxSize: 'Maximum 5MB',
+    describePlace: 'Describe this beautiful place...',
+    postTo: 'Post to Tavilink', editProfile: 'Edit Profile',
+    shareDiscovery: 'Share Your Discovery',
+    lightMode: 'Light Mode', darkMode: 'Dark Mode',
+    noPosts: 'No posts yet. Be the first to share!',
+    noFound: 'No posts found', noComments: 'No comments yet. Be the first!',
+    addComment: 'Add a comment...', post: 'Post',
+    editVideo: 'Edit Video', filters: 'Filters', adjust: 'Adjust',
+    trim: 'Trim', brightness: 'Brightness', contrast: 'Contrast',
+    saturation: 'Saturation', original: 'Original',
+    download: 'Save', cancel: 'Cancel',
+    language: 'Select Language', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  es: {
+    home: 'Inicio', explore: 'Explorar', map: 'Mapa', profile: 'Perfil',
+    upload: 'Nueva Publicación', comments: 'Comentarios', share: 'Compartir',
+    follow: 'Seguir', following: 'Siguiendo', edit: 'Editar',
+    delete: 'Eliminar', report: 'Reportar', save: 'Guardar', saved: 'Guardado',
+    repost: 'Republicar', like: 'Me gusta', likes: 'me gusta',
+    search: 'Buscar lugares, restaurantes, naturaleza...',
+    caption: 'Descripción', location: 'Ubicación', category: 'Categoría',
+    bio: 'Biografía', posts: 'Publicaciones', followers: 'Seguidores',
+    logout: 'Cerrar sesión', terms: 'Términos y Condiciones',
+    discover: 'Descubre los tesoros ocultos del mundo',
+    getStarted: 'Empezar', continueGoogle: 'Continuar con Google',
+    continueApple: 'Continuar con Apple', agreeTerms: 'Acepto los',
+    andPrivacy: 'y la Política de Privacidad', chooseUsername: 'Elige un nombre de usuario',
+    selectPhoto: 'Toca para seleccionar foto o video',
+    maxSize: 'Máximo 5MB',
+    describePlace: 'Describe este hermoso lugar...',
+    postTo: 'Publicar en Tavilink', editProfile: 'Editar Perfil',
+    shareDiscovery: 'Comparte tu Descubrimiento',
+    lightMode: 'Modo Claro', darkMode: 'Modo Oscuro',
+    noPosts: '¡Aún no hay publicaciones. ¡Sé el primero en compartir!',
+    noFound: 'No se encontraron publicaciones', noComments: '¡Aún no hay comentarios. ¡Sé el primero!',
+    addComment: 'Añade un comentario...', post: 'Publicar',
+    editVideo: 'Editar Video', filters: 'Filtros', adjust: 'Ajustar',
+    trim: 'Recortar', brightness: 'Brillo', contrast: 'Contraste',
+    saturation: 'Saturación', original: 'Original',
+    download: 'Guardar', cancel: 'Cancelar',
+    language: 'Seleccionar Idioma', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  fr: {
+    home: 'Accueil', explore: 'Explorer', map: 'Carte', profile: 'Profil',
+    upload: 'Nouvelle Publication', comments: 'Commentaires', share: 'Partager',
+    follow: 'Suivre', following: 'Suivi', edit: 'Modifier',
+    delete: 'Supprimer', report: 'Signaler', save: 'Enregistrer', saved: 'Enregistré',
+    repost: 'Republier', like: 'J\'aime', likes: 'j\'aime',
+    search: 'Rechercher des lieux, restaurants, nature...',
+    caption: 'Légende', location: 'Lieu', category: 'Catégorie',
+    bio: 'Bio', posts: 'Publications', followers: 'Abonnés',
+    logout: 'Déconnexion', terms: 'Conditions Générales',
+    discover: 'Découvrez les trésors cachés du monde',
+    getStarted: 'Commencer', continueGoogle: 'Continuer avec Google',
+    continueApple: 'Continuer avec Apple', agreeTerms: 'J\'accepte les',
+    andPrivacy: 'et la Politique de Confidentialité', chooseUsername: 'Choisissez un nom d\'utilisateur',
+    selectPhoto: 'Appuyez pour sélectionner une photo ou une vidéo',
+    maxSize: 'Maximum 5Mo',
+    describePlace: 'Décrivez ce bel endroit...',
+    postTo: 'Publier sur Tavilink', editProfile: 'Modifier le Profil',
+    shareDiscovery: 'Partagez votre Découverte',
+    lightMode: 'Mode Clair', darkMode: 'Mode Sombre',
+    noPosts: 'Aucune publication encore. Soyez le premier à partager !',
+    noFound: 'Aucune publication trouvée', noComments: 'Aucun commentaire encore. Soyez le premier !',
+    addComment: 'Ajoutez un commentaire...', post: 'Publier',
+    editVideo: 'Modifier la Vidéo', filters: 'Filtres', adjust: 'Ajuster',
+    trim: 'Recadrer', brightness: 'Luminosité', contrast: 'Contraste',
+    saturation: 'Saturation', original: 'Original',
+    download: 'Enregistrer', cancel: 'Annuler',
+    language: 'Choisir la Langue', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  de: {
+    home: 'Startseite', explore: 'Entdecken', map: 'Karte', profile: 'Profil',
+    upload: 'Neuer Beitrag', comments: 'Kommentare', share: 'Teilen',
+    follow: 'Folgen', following: 'Folge ich', edit: 'Bearbeiten',
+    delete: 'Löschen', report: 'Melden', save: 'Speichern', saved: 'Gespeichert',
+    repost: 'Teilen', like: 'Gefällt mir', likes: 'Gefällt mir',
+    search: 'Orte, Restaurants, Natur suchen...',
+    caption: 'Beschriftung', location: 'Ort', category: 'Kategorie',
+    bio: 'Bio', posts: 'Beiträge', followers: 'Follower',
+    logout: 'Abmelden', terms: 'Nutzungsbedingungen',
+    discover: 'Entdecke die verborgenen Schätze der Welt',
+    getStarted: 'Loslegen', continueGoogle: 'Mit Google fortfahren',
+    continueApple: 'Mit Apple fortfahren', agreeTerms: 'Ich stimme den',
+    andPrivacy: 'und der Datenschutzerklärung zu', chooseUsername: 'Wähle einen Benutzernamen',
+    selectPhoto: 'Tippe, um Foto oder Video auszuwählen',
+    maxSize: 'Maximal 5MB',
+    describePlace: 'Beschreibe diesen schönen Ort...',
+    postTo: 'Auf Tavilink posten', editProfile: 'Profil bearbeiten',
+    shareDiscovery: 'Teile deine Entdeckung',
+    lightMode: 'Heller Modus', darkMode: 'Dunkler Modus',
+    noPosts: 'Noch keine Beiträge. Sei der Erste, der teilt!',
+    noFound: 'Keine Beiträge gefunden', noComments: 'Noch keine Kommentare. Sei der Erste!',
+    addComment: 'Kommentar hinzufügen...', post: 'Posten',
+    editVideo: 'Video bearbeiten', filters: 'Filter', adjust: 'Anpassen',
+    trim: 'Zuschneiden', brightness: 'Helligkeit', contrast: 'Kontrast',
+    saturation: 'Sättigung', original: 'Original',
+    download: 'Speichern', cancel: 'Abbrechen',
+    language: 'Sprache wählen', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  it: {
+    home: 'Home', explore: 'Esplora', map: 'Mappa', profile: 'Profilo',
+    upload: 'Nuovo Post', comments: 'Commenti', share: 'Condividi',
+    follow: 'Segui', following: 'Seguendo', edit: 'Modifica',
+    delete: 'Elimina', report: 'Segnala', save: 'Salva', saved: 'Salvato',
+    repost: 'Ripubblica', like: 'Mi piace', likes: 'mi piace',
+    search: 'Cerca luoghi, ristoranti, natura...',
+    caption: 'Didascalia', location: 'Luogo', category: 'Categoria',
+    bio: 'Bio', posts: 'Post', followers: 'Follower',
+    logout: 'Esci', terms: 'Termini e Condizioni',
+    discover: 'Scopri i tesori nascosti del mondo',
+    getStarted: 'Inizia', continueGoogle: 'Continua con Google',
+    continueApple: 'Continua con Apple', agreeTerms: 'Accetto i',
+    andPrivacy: 'e l\'Informativa sulla Privacy', chooseUsername: 'Scegli un nome utente',
+    selectPhoto: 'Tocca per selezionare foto o video',
+    maxSize: 'Massimo 5MB',
+    describePlace: 'Descrivi questo bellissimo posto...',
+    postTo: 'Pubblica su Tavilink', editProfile: 'Modifica Profilo',
+    shareDiscovery: 'Condividi la tua Scoperta',
+    lightMode: 'Modalità Chiara', darkMode: 'Modalità Scura',
+    noPosts: 'Ancora nessun post. Sii il primo a condividere!',
+    noFound: 'Nessun post trovato', noComments: 'Ancora nessun commento. Sii il primo!',
+    addComment: 'Aggiungi un commento...', post: 'Pubblica',
+    editVideo: 'Modifica Video', filters: 'Filtri', adjust: 'Regola',
+    trim: 'Taglia', brightness: 'Luminosità', contrast: 'Contrasto',
+    saturation: 'Saturazione', original: 'Originale',
+    download: 'Salva', cancel: 'Annulla',
+    language: 'Seleziona Lingua', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  pt: {
+    home: 'Início', explore: 'Explorar', map: 'Mapa', profile: 'Perfil',
+    upload: 'Nova Publicação', comments: 'Comentários', share: 'Compartilhar',
+    follow: 'Seguir', following: 'Seguindo', edit: 'Editar',
+    delete: 'Excluir', report: 'Denunciar', save: 'Salvar', saved: 'Salvo',
+    repost: 'Repostar', like: 'Curtir', likes: 'curtidas',
+    search: 'Buscar lugares, restaurantes, natureza...',
+    caption: 'Legenda', location: 'Localização', category: 'Categoria',
+    bio: 'Bio', posts: 'Publicações', followers: 'Seguidores',
+    logout: 'Sair', terms: 'Termos e Condições',
+    discover: 'Descubra os tesouros escondidos do mundo',
+    getStarted: 'Começar', continueGoogle: 'Continuar com Google',
+    continueApple: 'Continuar com Apple', agreeTerms: 'Concordo com os',
+    andPrivacy: 'e a Política de Privacidade', chooseUsername: 'Escolha um nome de usuário',
+    selectPhoto: 'Toque para selecionar foto ou vídeo',
+    maxSize: 'Máximo 5MB',
+    describePlace: 'Descreva este lugar lindo...',
+    postTo: 'Postar no Tavilink', editProfile: 'Editar Perfil',
+    shareDiscovery: 'Compartilhe sua Descoberta',
+    lightMode: 'Modo Claro', darkMode: 'Modo Escuro',
+    noPosts: 'Ainda não há publicações. Seja o primeiro a compartilhar!',
+    noFound: 'Nenhuma publicação encontrada', noComments: 'Ainda não há comentários. Seja o primeiro!',
+    addComment: 'Adicione um comentário...', post: 'Publicar',
+    editVideo: 'Editar Vídeo', filters: 'Filtros', adjust: 'Ajustar',
+    trim: 'Cortar', brightness: 'Brilho', contrast: 'Contraste',
+    saturation: 'Saturação', original: 'Original',
+    download: 'Salvar', cancel: 'Cancelar',
+    language: 'Selecionar Idioma', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  ru: {
+    home: 'Главная', explore: 'Исследовать', map: 'Карта', profile: 'Профиль',
+    upload: 'Новый Пост', comments: 'Комментарии', share: 'Поделиться',
+    follow: 'Подписаться', following: 'Подписки', edit: 'Редактировать',
+    delete: 'Удалить', report: 'Пожаловаться', save: 'Сохранить', saved: 'Сохранено',
+    repost: 'Репост', like: 'Нравится', likes: 'лайков',
+    search: 'Искать места, рестораны, природу...',
+    caption: 'Подпись', location: 'Местоположение', category: 'Категория',
+    bio: 'О себе', posts: 'Посты', followers: 'Подписчики',
+    logout: 'Выйти', terms: 'Условия использования',
+    discover: 'Откройте для себя скрытые сокровища мира',
+    getStarted: 'Начать', continueGoogle: 'Продолжить с Google',
+    continueApple: 'Продолжить с Apple', agreeTerms: 'Я согласен с',
+    andPrivacy: 'и Политикой конфиденциальности', chooseUsername: 'Выберите имя пользователя',
+    selectPhoto: 'Нажмите, чтобы выбрать фото или видео',
+    maxSize: 'Максимум 5MB',
+    describePlace: 'Опишите это прекрасное место...',
+    postTo: 'Опубликовать в Tavilink', editProfile: 'Редактировать профиль',
+    shareDiscovery: 'Поделитесь своим открытием',
+    lightMode: 'Светлый режим', darkMode: 'Тёмный режим',
+    noPosts: 'Пока нет постов. Будьте первым, кто поделится!',
+    noFound: 'Посты не найдены', noComments: 'Пока нет комментариев. Будьте первым!',
+    addComment: 'Добавьте комментарий...', post: 'Опубликовать',
+    editVideo: 'Редактировать видео', filters: 'Фильтры', adjust: 'Настроить',
+    trim: 'Обрезать', brightness: 'Яркость', contrast: 'Контраст',
+    saturation: 'Насыщенность', original: 'Оригинал',
+    download: 'Сохранить', cancel: 'Отмена',
+    language: 'Выбрать язык', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  zh: {
+    home: '首页', explore: '探索', map: '地图', profile: '个人资料',
+    upload: '新帖子', comments: '评论', share: '分享',
+    follow: '关注', following: '已关注', edit: '编辑',
+    delete: '删除', report: '举报', save: '保存', saved: '已保存',
+    repost: '转发', like: '赞', likes: '赞',
+    search: '搜索地点、餐厅、自然...',
+    caption: '标题', location: '位置', category: '类别',
+    bio: '简介', posts: '帖子', followers: '粉丝',
+    logout: '退出', terms: '条款和条件',
+    discover: '发现世界上隐藏的瑰宝',
+    getStarted: '开始', continueGoogle: '使用 Google 继续',
+    continueApple: '使用 Apple 继续', agreeTerms: '我同意',
+    andPrivacy: '和隐私政策', chooseUsername: '选择用户名',
+    selectPhoto: '点击选择照片或视频',
+    maxSize: '最大 5MB',
+    describePlace: '描述这个美丽的地方...',
+    postTo: '发布到 Tavilink', editProfile: '编辑个人资料',
+    shareDiscovery: '分享您的发现',
+    lightMode: '浅色模式', darkMode: '深色模式',
+    noPosts: '还没有帖子。成为第一个分享的人！',
+    noFound: '未找到帖子', noComments: '还没有评论。成为第一个评论的人！',
+    addComment: '添加评论...', post: '发布',
+    editVideo: '编辑视频', filters: '滤镜', adjust: '调整',
+    trim: '裁剪', brightness: '亮度', contrast: '对比度',
+    saturation: '饱和度', original: '原图',
+    download: '保存', cancel: '取消',
+    language: '选择语言', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  ja: {
+    home: 'ホーム', explore: '探索', map: '地図', profile: 'プロフィール',
+    upload: '新規投稿', comments: 'コメント', share: '共有',
+    follow: 'フォロー', following: 'フォロー中', edit: '編集',
+    delete: '削除', report: '報告', save: '保存', saved: '保存済み',
+    repost: 'リポスト', like: 'いいね', likes: 'いいね',
+    search: '場所、レストラン、自然を検索...',
+    caption: 'キャプション', location: '場所', category: 'カテゴリー',
+    bio: '自己紹介', posts: '投稿', followers: 'フォロワー',
+    logout: 'ログアウト', terms: '利用規約',
+    discover: '世界の隠れた宝石を発見しよう',
+    getStarted: '始める', continueGoogle: 'Google で続行',
+    continueApple: 'Apple で続行', agreeTerms: 'に同意します',
+    andPrivacy: 'とプライバシーポリシー', chooseUsername: 'ユーザー名を選択',
+    selectPhoto: 'タップして写真または動画を選択',
+    maxSize: '最大 5MB',
+    describePlace: 'この美しい場所を説明してください...',
+    postTo: 'Tavilink に投稿', editProfile: 'プロフィールを編集',
+    shareDiscovery: 'あなたの発見を共有',
+    lightMode: 'ライトモード', darkMode: 'ダークモード',
+    noPosts: 'まだ投稿がありません。最初の投稿者になりましょう！',
+    noFound: '投稿が見つかりません', noComments: 'まだコメントがありません。最初のコメンテーターになりましょう！',
+    addComment: 'コメントを追加...', post: '投稿',
+    editVideo: '動画を編集', filters: 'フィルター', adjust: '調整',
+    trim: 'トリミング', brightness: '明るさ', contrast: 'コントラスト',
+    saturation: '彩度', original: 'オリジナル',
+    download: '保存', cancel: 'キャンセル',
+    language: '言語を選択', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  ko: {
+    home: '홈', explore: '탐색', map: '지도', profile: '프로필',
+    upload: '새 게시물', comments: '댓글', share: '공유',
+    follow: '팔로우', following: '팔로잉', edit: '편집',
+    delete: '삭제', report: '신고', save: '저장', saved: '저장됨',
+    repost: '재게시', like: '좋아요', likes: '좋아요',
+    search: '장소, 레스토랑, 자연 검색...',
+    caption: '캡션', location: '위치', category: '카테고리',
+    bio: '소개', posts: '게시물', followers: '팔로워',
+    logout: '로그아웃', terms: '이용약관',
+    discover: '세상의 숨겨진 보석을 발견하세요',
+    getStarted: '시작하기', continueGoogle: 'Google로 계속',
+    continueApple: 'Apple로 계속', agreeTerms: '에 동의합니다',
+    andPrivacy: '및 개인정보 처리방침', chooseUsername: '사용자 이름 선택',
+    selectPhoto: '탭하여 사진 또는 동영상 선택',
+    maxSize: '최대 5MB',
+    describePlace: '이 아름다운 장소를 설명하세요...',
+    postTo: 'Tavilink에 게시', editProfile: '프로필 편집',
+    shareDiscovery: '당신의 발견을 공유하세요',
+    lightMode: '라이트 모드', darkMode: '다크 모드',
+    noPosts: '아직 게시물이 없습니다. 첫 번째로 공유하세요!',
+    noFound: '게시물을 찾을 수 없음', noComments: '아직 댓글이 없습니다. 첫 번째로 댓글을 달아보세요!',
+    addComment: '댓글 추가...', post: '게시',
+    editVideo: '동영상 편집', filters: '필터', adjust: '조정',
+    trim: '자르기', brightness: '밝기', contrast: '대비',
+    saturation: '채도', original: '원본',
+    download: '저장', cancel: '취소',
+    language: '언어 선택', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  },
+  ar: {
+    home: 'الرئيسية', explore: 'استكشاف', map: 'الخريطة', profile: 'الملف الشخصي',
+    upload: 'منشور جديد', comments: 'تعليقات', share: 'مشاركة',
+    follow: 'متابعة', following: 'أتابع', edit: 'تعديل',
+    delete: 'حذف', report: 'إبلاغ', save: 'حفظ', saved: 'محفوظ',
+    repost: 'إعادة نشر', like: 'إعجاب', likes: 'إعجابات',
+    search: 'البحث عن أماكن ومطاعم وطبيعة...',
+    caption: 'التسمية', location: 'الموقع', category: 'الفئة',
+    bio: 'نبذة', posts: 'منشورات', followers: 'متابعون',
+    logout: 'تسجيل الخروج', terms: 'الشروط والأحكام',
+    discover: 'اكتشف كنوز العالم المخفية',
+    getStarted: 'ابدأ', continueGoogle: 'المتابعة باستخدام Google',
+    continueApple: 'المتابعة باستخدام Apple', agreeTerms: 'أوافق على',
+    andPrivacy: 'وسياسة الخصوصية', chooseUsername: 'اختر اسم مستخدم',
+    selectPhoto: 'انقر لتحديد صورة أو فيديو',
+    maxSize: 'الحد الأقصى 5 ميجابايت',
+    describePlace: 'صف هذا المكان الجميل...',
+    postTo: 'نشر على Tavilink', editProfile: 'تعديل الملف الشخصي',
+    shareDiscovery: 'شارك اكتشافك',
+    lightMode: 'الوضع الفاتح', darkMode: 'الوضع الداكن',
+    noPosts: 'لا توجد منشورات بعد. كن أول من يشارك!',
+    noFound: 'لم يتم العثور على منشورات', noComments: 'لا توجد تعليقات بعد. كن أول من يعلق!',
+    addComment: 'أضف تعليقاً...', post: 'نشر',
+    editVideo: 'تحرير الفيديو', filters: 'فلاتر', adjust: 'تعديل',
+    trim: 'قص', brightness: 'السطوع', contrast: 'التباين',
+    saturation: 'التشبع', original: 'أصلي',
+    download: 'حفظ', cancel: 'إلغاء',
+    language: 'اختر اللغة', english: 'English',
+    spanish: 'Español', french: 'Français', german: 'Deutsch',
+    italian: 'Italiano', portuguese: 'Português', russian: 'Русский',
+    chinese: '中文', japanese: '日本語', korean: '한국어', arabic: 'العربية'
+  }
+};
+
+// ===================== UTILITY FUNCTIONS =====================
+function t(key) {
+  return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toast-msg');
+  toastMsg.textContent = msg;
+  toast.classList.remove('opacity-0', '-translate-y-2', 'pointer-events-none');
+  toast.classList.add('opacity-100', 'translate-y-0');
+  setTimeout(() => {
+    toast.classList.add('opacity-0', '-translate-y-2', 'pointer-events-none');
+    toast.classList.remove('opacity-100', 'translate-y-0');
+  }, 2500);
+}
+
+function showLoading(show) {
+  document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+}
+
+function formatNumber(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+}
+
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + 'y';
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + 'mo';
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + 'd';
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + 'h';
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + 'm';
+  return 'now';
+}
+
+function updateTranslations() {
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const key = el.getAttribute('data-t');
+    if (translations[currentLang][key]) el.textContent = translations[currentLang][key];
+  });
+  document.querySelectorAll('[data-t-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-t-placeholder');
+    if (translations[currentLang][key]) el.placeholder = translations[currentLang][key];
+  });
+}
+
+// ===================== AUTHENTICATION =====================
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    await loadUserData(user.uid);
+    document.getElementById('splash-screen').classList.add('hidden');
+    document.getElementById('header').classList.remove('hidden');
+    document.getElementById('bottom-nav').classList.remove('hidden');
+    setView('home');
+  } else {
+    currentUser = null;
+    currentUserData = null;
+    document.getElementById('splash-screen').classList.remove('hidden');
+    document.getElementById('header').classList.add('hidden');
+    document.getElementById('bottom-nav').classList.add('hidden');
+  }
+});
+
+async function loadUserData(uid) {
+  const doc = await db.collection('users').doc(uid).get();
+  if (doc.exists) {
+    currentUserData = doc.data();
+    isDark = currentUserData.darkMode !== false;
+    currentLang = currentUserData.language || 'en';
+    applyTheme();
+    updateTranslations();
+  } else {
+    // Create new user profile
+    currentUserData = {
+      uid: uid,
+      displayName: currentUser.displayName || 'Traveler',
+      username: 'user_' + uid.slice(0, 6),
+      email: currentUser.email || '',
+      photoURL: currentUser.photoURL || DEFAULT_AVATAR,
+      coverURL: '',
+      bio: '',
+      language: 'en',
+      darkMode: true,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      followersCount: 0,
+      followingCount: 0
+    };
+    await db.collection('users').doc(uid).set(currentUserData);
+  }
+}
+
+async function handleGoogleLogin() {
+  if (!document.getElementById('terms-check').checked) {
+    showToast('Please agree to Terms & Conditions');
+    return;
+  }
+  try {
+    showLoading(true);
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function handleAppleLogin() {
+  if (!document.getElementById('terms-check').checked) {
+    showToast('Please agree to Terms & Conditions');
+    return;
+  }
+  showToast('Apple Sign-In requires additional setup in Firebase Console');
+}
+
+async function handleEmailLogin() {
+  if (!document.getElementById('terms-check').checked) {
+    showToast('Please agree to Terms & Conditions');
+    return;
+  }
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const username = document.getElementById('login-username').value.trim();
+  if (!email || !password) {
+    showToast('Please enter email and password');
+    return;
+  }
+  try {
+    showLoading(true);
+    const result = await auth.createUserWithEmailAndPassword(email, password);
+    if (username) {
+      await db.collection('users').doc(result.user.uid).update({ displayName: username, username: username });
+    }
+  } catch (err) {
+    if (err.code === 'auth/email-already-in-use') {
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (e) {
+        showToast(e.message);
+      }
+    } else {
+      showToast(err.message);
+    }
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function handleAnonymousLogin() {
+  try {
+    showLoading(true);
+    await auth.signInAnonymously();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function handleLogout() {
+  try {
+    await auth.signOut();
+    closeProfileEdit();
+    setView('home');
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+// ===================== THEME & LANGUAGE =====================
+function applyTheme() {
+  const html = document.documentElement;
+  if (isDark) {
+    html.classList.add('dark');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#09090b');
+  } else {
+    html.classList.remove('dark');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f8f9fa');
+  }
+  if (currentUserData) {
+    db.collection('users').doc(currentUser.uid).update({ darkMode: isDark });
+  }
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  applyTheme();
+  const icon = document.getElementById('theme-icon');
+  const text = document.getElementById('theme-text');
+  if (icon) icon.className = isDark ? 'ph ph-moon' : 'ph ph-sun';
+  if (text) text.textContent = t(isDark ? 'darkMode' : 'lightMode');
+}
+
+function openLanguageModal() {
+  const list = document.getElementById('language-list');
+  const langs = [
+    { code: 'en', name: 'english' }, { code: 'es', name: 'spanish' },
+    { code: 'fr', name: 'french' }, { code: 'de', name: 'german' },
+    { code: 'it', name: 'italian' }, { code: 'pt', name: 'portuguese' },
+    { code: 'ru', name: 'russian' }, { code: 'zh', name: 'chinese' },
+    { code: 'ja', name: 'japanese' }, { code: 'ko', name: 'korean' },
+    { code: 'ar', name: 'arabic' }
+  ];
+  list.innerHTML = langs.map(l => `
+    <button onclick="setLanguage('${l.code}')" class="w-full flex items-center justify-between p-3 rounded-xl theme-transition ${currentLang === l.code ? 'bg-cyan-400/20' : ''}" style="background-color: ${currentLang === l.code ? 'rgba(34,211,238,0.1)' : 'var(--input-bg)'};">
+      <span class="text-sm font-medium" style="color: var(--text-primary);">${t(l.name)}</span>
+      ${currentLang === l.code ? '<i class="ph ph-check text-cyan-400 text-lg"></i>' : ''}
+    </button>
+  `).join('');
+  document.getElementById('language-modal').classList.remove('hidden');
+}
+
+function closeLanguageModal() {
+  document.getElementById('language-modal').classList.add('hidden');
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  updateTranslations();
+  if (currentUserData) {
+    db.collection('users').doc(currentUser.uid).update({ language: lang });
+  }
+  closeLanguageModal();
+  if (currentView === 'profile') renderProfile();
+}
+
+// ===================== TERMS =====================
+function showTermsFromSplash(e) {
+  e.stopPropagation();
+  document.getElementById('terms-modal').classList.remove('hidden');
+}
+
+function showTerms() {
+  document.getElementById('terms-modal').classList.remove('hidden');
+}
+
+function closeTerms() {
+  document.getElementById('terms-modal').classList.add('hidden');
+}
+
+function acceptTerms() {
+  document.getElementById('terms-check').checked = true;
+  closeTerms();
+}
+
+// ===================== NAVIGATION =====================
+function setView(view, params = {}) {
+  // Clean up previous listeners
+  unsubscribes.forEach(unsub => unsub());
+  unsubscribes = [];
+
+  if (view !== currentView) {
+    viewHistory.push(currentView);
+  }
+  currentView = view;
+  activeCategory = params.category || 'all';
+
+  const main = document.getElementById('main');
+  const header = document.getElementById('header');
+  const bottomNav = document.getElementById('bottom-nav');
+
+  // Update nav active state
+  ['home', 'explore', 'map', 'profile'].forEach(v => {
+    const btn = document.getElementById('nav-' + v);
+    if (btn) {
+      btn.style.color = v === view ? 'var(--accent)' : 'var(--text-secondary)';
+    }
+  });
+
+  if (view === 'home') {
+    header.classList.add('hidden');
+    renderHome();
+  } else if (view === 'explore') {
+    header.classList.remove('hidden');
+    document.getElementById('header-title').textContent = t('explore');
+    renderExplore();
+  } else if (view === 'upload') {
+    header.classList.remove('hidden');
+    document.getElementById('header-title').textContent = t('upload');
+    renderUpload();
+  } else if (view === 'map') {
+    header.classList.remove('hidden');
+    document.getElementById('header-title').textContent = t('map');
+    renderMap();
+  } else if (view === 'profile') {
+    header.classList.remove('hidden');
+    document.getElementById('header-title').textContent = t('profile');
+    renderProfile(params.userId);
+  } else if (view === 'userProfile') {
+    header.classList.remove('hidden');
+    document.getElementById('header-title').textContent = t('profile');
+    renderProfile(params.userId);
+  }
+}
+
+function goBack() {
+  const prev = viewHistory.pop() || 'home';
+  setView(prev);
+}
+
+// ===================== HOME FEED =====================
+function renderHome() {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="h-full overflow-y-auto scrollbar-hide pb-20" id="home-scroll">
+      <!-- Stories / Categories -->
+      <div class="flex gap-3 overflow-x-auto scrollbar-hide p-4 pb-2">
+        ${categories.map(c => `
+          <button onclick="setView('explore', {category: '${c.id}'}); setView('explore', {category: '${c.id}'});" class="flex flex-col items-center gap-1 flex-shrink-0">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center theme-transition ${activeCategory === c.id ? 'bg-gradient-to-tr from-cyan-400 to-blue-600 text-white' : ''}" style="background-color: ${activeCategory === c.id ? '' : 'var(--bg-card)'}; color: ${activeCategory === c.id ? '' : 'var(--text-secondary)'};">
+              <i class="ph ${c.icon} text-2xl"></i>
+            </div>
+            <span class="text-[10px] font-medium" style="color: var(--text-secondary);">${c.label}</span>
+          </button>
+        `).join('')}
+      </div>
+
+      <!-- Posts Feed -->
+      <div id="posts-feed" class="space-y-4 px-4 pb-4"></div>
+      <div id="feed-loader" class="hidden p-4 text-center">
+        <div class="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      </div>
+    </div>
+  `;
+
+  loadPosts();
+
+  // Infinite scroll
+  const scrollContainer = document.getElementById('home-scroll');
+  scrollContainer.onscroll = () => {
+    if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 200) {
+      loadMorePosts();
+    }
+  };
+}
+
+function loadPosts() {
+  const feed = document.getElementById('posts-feed');
+  feed.innerHTML = Array(3).fill(0).map(() => `
+    <div class="rounded-2xl overflow-hidden theme-transition" style="background-color: var(--bg-card);">
+      <div class="flex items-center gap-3 p-3">
+        <div class="w-10 h-10 rounded-full skeleton"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-3 w-24 skeleton"></div>
+          <div class="h-2 w-16 skeleton"></div>
+        </div>
+      </div>
+      <div class="aspect-square skeleton"></div>
+      <div class="p-3 space-y-2">
+        <div class="h-3 w-full skeleton"></div>
+        <div class="h-3 w-2/3 skeleton"></div>
+      </div>
+    </div>
+  `).join('');
+
+  const q = db.collection('posts').orderBy('createdAt', 'desc').limit(10);
+  const unsub = q.onSnapshot(snapshot => {
+    postsCache = [];
+    snapshot.forEach(doc => {
+      postsCache.push({ id: doc.id, ...doc.data() });
+    });
+    lastPostDoc = snapshot.docs[snapshot.docs.length - 1];
+    renderPostCards(feed);
+    setupVideoObserver();
+  }, err => {
+    console.error(err);
+    feed.innerHTML = `<div class="text-center py-8" style="color: var(--text-secondary);">${t('noPosts')}</div>`;
+  });
+
+  unsubscribes.push(unsub);
+}
+
+function loadMorePosts() {
+  if (isLoadingPosts || !lastPostDoc) return;
+  isLoadingPosts = true;
+  document.getElementById('feed-loader').classList.remove('hidden');
+
+  const q = db.collection('posts').orderBy('createdAt', 'desc').startAfter(lastPostDoc).limit(10);
+  q.get().then(snapshot => {
+    if (snapshot.empty) {
+      lastPostDoc = null;
+      return;
+    }
+    snapshot.forEach(doc => {
+      postsCache.push({ id: doc.id, ...doc.data() });
+    });
+    lastPostDoc = snapshot.docs[snapshot.docs.length - 1];
+    const feed = document.getElementById('posts-feed');
+    renderPostCards(feed, true);
+    setupVideoObserver();
+  }).finally(() => {
+    isLoadingPosts = false;
+    document.getElementById('feed-loader').classList.add('hidden');
+  });
+}
+
+function renderPostCards(container, append = false) {
+  if (!append) container.innerHTML = '';
+
+  if (postsCache.length === 0) {
+    container.innerHTML = `<div class="text-center py-8" style="color: var(--text-secondary);">${t('noPosts')}</div>`;
+    return;
+  }
+
+  const html = postsCache.map(post => `
+    <div class="rounded-2xl overflow-hidden theme-transition mb-4" style="background-color: var(--bg-card);" id="post-${post.id}">
+      <div class="flex items-center justify-between p-3">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="showUserProfile('${post.authorId}')">
+          <img src="${post.authorAvatar || DEFAULT_AVATAR}" class="w-10 h-10 rounded-full object-cover">
+          <div>
+            <div class="text-sm font-semibold" style="color: var(--text-primary);">${post.authorName || 'User'}</div>
+            <div class="text-xs" style="color: var(--text-secondary);">${post.location || ''} · ${timeAgo(post.createdAt?.toDate ? post.createdAt.toDate() : post.createdAt)}</div>
+          </div>
+        </div>
+        <button onclick="showPostOptions('${post.id}')" class="p-2" style="color: var(--text-secondary);"><i class="ph ph-dots-three-vertical text-xl"></i></button>
+      </div>
+
+      ${post.mediaType === 'video' ? `
+        <div class="relative aspect-square bg-black video-container">
+          <video src="${post.mediaURL}" class="w-full h-full object-cover" loop muted playsinline poster="${post.thumbnailURL || ''}"></video>
+          <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur px-2 py-1 rounded-lg text-xs text-white font-medium">
+            <i class="ph ph-film-strip"></i> Video
+          </div>
+        </div>
+      ` : `
+        <div class="relative aspect-square bg-gray-100">
+          <img src="${post.mediaURL}" class="w-full h-full object-cover" loading="lazy">
+        </div>
+      `}
+
+      <div class="p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-4">
+            <button onclick="toggleLike('${post.id}', this)" class="relative">
+              <i class="ph ${post.likedBy?.includes(currentUser.uid) ? 'ph-heart-fill text-red-500' : 'ph-heart'} text-2xl transition" style="color: ${post.likedBy?.includes(currentUser.uid) ? '' : 'var(--text-primary)'};"></i>
+            </button>
+            <button onclick="openComments('${post.id}')">
+              <i class="ph ph-chat-circle text-2xl" style="color: var(--text-primary);"></i>
+            </button>
+            <button onclick="openShare('${post.id}')">
+              <i class="ph ph-paper-plane-right text-2xl" style="color: var(--text-primary);"></i>
+            </button>
+          </div>
+          <button onclick="toggleSave('${post.id}', this)">
+            <i class="ph ${post.savedBy?.includes(currentUser.uid) ? 'ph-bookmark-simple-fill text-cyan-400' : 'ph-bookmark-simple'} text-2xl" style="color: ${post.savedBy?.includes(currentUser.uid) ? '' : 'var(--text-primary)'};"></i>
+          </button>
+        </div>
+        <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);">${formatNumber(post.likesCount || 0)} ${t('likes')}</div>
+        <div class="text-sm" style="color: var(--text-primary);">
+          <span class="font-semibold">${post.authorName || 'User'}</span> 
+          <span class="line-clamp-3">${post.caption || ''}</span>
+        </div>
+        ${post.commentsCount > 0 ? `<button onclick="openComments('${post.id}')" class="text-xs mt-1" style="color: var(--text-secondary);">View all ${post.commentsCount} comments</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  if (append) {
+    container.insertAdjacentHTML('beforeend', html);
+  } else {
+    container.innerHTML = html;
+  }
+}
+
+function setupVideoObserver() {
+  if (videoObserver) videoObserver.disconnect();
+  videoObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const video = entry.target;
+      if (entry.isIntersecting) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  }, { threshold: 0.6 });
+
+  document.querySelectorAll('video').forEach(v => videoObserver.observe(v));
+}
+
+// ===================== POST ACTIONS =====================
+async function toggleLike(postId, btn) {
+  const postRef = db.collection('posts').doc(postId);
+  const likeRef = postRef.collection('likes').doc(currentUser.uid);
+  const doc = await likeRef.get();
+
+  if (doc.exists) {
+    await likeRef.delete();
+    await postRef.update({
+      likesCount: firebase.firestore.FieldValue.increment(-1),
+      likedBy: firebase.firestore.FieldValue.arrayRemove(currentUser.uid)
+    });
+  } else {
+    await likeRef.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await postRef.update({
+      likesCount: firebase.firestore.FieldValue.increment(1),
+      likedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+    });
+    // Animate heart
+    const heart = document.createElement('div');
+    heart.innerHTML = '<i class="ph-fill ph-heart text-red-500 text-2xl"></i>';
+    heart.className = 'float-heart';
+    const rect = btn.getBoundingClientRect();
+    heart.style.left = rect.left + 'px';
+    heart.style.top = rect.top + 'px';
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 800);
+  }
+}
+
+async function toggleSave(postId, btn) {
+  const userRef = db.collection('users').doc(currentUser.uid);
+  const saveRef = userRef.collection('saves').doc(postId);
+  const doc = await saveRef.get();
+  const postRef = db.collection('posts').doc(postId);
+
+  if (doc.exists) {
+    await saveRef.delete();
+    await postRef.update({
+      savedBy: firebase.firestore.FieldValue.arrayRemove(currentUser.uid),
+      savesCount: firebase.firestore.FieldValue.increment(-1)
+    });
+  } else {
+    await saveRef.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await postRef.update({
+      savedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+      savesCount: firebase.firestore.FieldValue.increment(1)
+    });
+  }
+}
+
+function showPostOptions(postId) {
+  currentPostId = postId;
+  const post = postsCache.find(p => p.id === postId);
+  const isOwner = post && post.authorId === currentUser.uid;
+
+  document.getElementById('post-options-list').innerHTML = `
+    ${isOwner ? `
+      <button onclick="editPost('${postId}')" class="w-full flex items-center gap-3 p-4 rounded-xl theme-transition text-left" style="background-color: var(--input-bg); color: var(--text-primary);">
+        <i class="ph ph-pencil-simple text-xl"></i> <span data-t="edit">${t('edit')}</span>
+      </button>
+      <button onclick="deletePost('${postId}')" class="w-full flex items-center gap-3 p-4 rounded-xl theme-transition text-left text-red-400" style="background-color: rgba(239,68,68,0.1);">
+        <i class="ph ph-trash text-xl"></i> <span data-t="delete">${t('delete')}</span>
+      </button>
+    ` : `
+      <button onclick="reportPost('${postId}')" class="w-full flex items-center gap-3 p-4 rounded-xl theme-transition text-left" style="background-color: var(--input-bg); color: var(--text-primary);">
+        <i class="ph ph-flag text-xl"></i> <span data-t="report">${t('report')}</span>
+      </button>
+    `}
+  `;
+  document.getElementById('post-options-modal').classList.remove('hidden');
+}
+
+function closePostOptions() {
+  document.getElementById('post-options-modal').classList.add('hidden');
+}
+
+async function deletePost(postId) {
+  if (!confirm('Delete this post?')) return;
+  try {
+    await db.collection('posts').doc(postId).delete();
+    showToast('Post deleted');
+    closePostOptions();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+function reportPost(postId) {
+  showToast('Report submitted. Thank you.');
+  closePostOptions();
+}
+
+function editPost(postId) {
+  closePostOptions();
+  showToast('Edit feature coming soon');
+}
+
+// ===================== COMMENTS =====================
+function openComments(postId) {
+  currentPostId = postId;
+  document.getElementById('comment-avatar').src = currentUserData?.photoURL || DEFAULT_AVATAR;
+  document.getElementById('comments-modal').classList.remove('hidden');
+  loadComments(postId);
+}
+
+function loadComments(postId) {
+  const list = document.getElementById('comments-list');
+  list.innerHTML = `<div class="text-center py-4" style="color: var(--text-secondary);">Loading...</div>`;
+
+  const unsub = db.collection('posts').doc(postId).collection('comments')
+    .orderBy('createdAt', 'asc')
+    .onSnapshot(snapshot => {
+      if (snapshot.empty) {
+        list.innerHTML = `<div class="text-center py-8" style="color: var(--text-secondary);">${t('noComments')}</div>`;
+        return;
+      }
+      list.innerHTML = snapshot.docs.map(doc => {
+        const c = doc.data();
+        return `
+          <div class="flex gap-3">
+            <img src="${c.authorAvatar || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full object-cover flex-shrink-0">
+            <div class="flex-1">
+              <div class="rounded-2xl p-3 theme-transition" style="background-color: var(--input-bg);">
+                <div class="text-sm font-semibold" style="color: var(--text-primary);">${c.authorName || 'User'}</div>
+                <div class="text-sm" style="color: var(--text-primary);">${c.text}</div>
+              </div>
+              <div class="text-xs mt-1 ml-3" style="color: var(--text-secondary);">${timeAgo(c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      list.scrollTop = list.scrollHeight;
+    });
+
+  unsubscribes.push(unsub);
+}
+
+function closeComments() {
+  document.getElementById('comments-modal').classList.add('hidden');
+  currentPostId = null;
+}
+
+async function submitComment() {
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text || !currentPostId) return;
+
+  try {
+    await db.collection('posts').doc(currentPostId).collection('comments').add({
+      authorId: currentUser.uid,
+      authorName: currentUserData.displayName || 'User',
+      authorAvatar: currentUserData.photoURL || DEFAULT_AVATAR,
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('posts').doc(currentPostId).update({
+      commentsCount: firebase.firestore.FieldValue.increment(1)
+    });
+    input.value = '';
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+// ===================== SHARE =====================
+function openShare(postId) {
+  currentPostId = postId;
+  document.getElementById('share-modal').classList.remove('hidden');
+}
+
+function closeShare() {
+  document.getElementById('share-modal').classList.add('hidden');
+}
+
+function shareTo(platform) {
+  const url = 'https://tavilink.web.app/post/' + currentPostId;
+  const text = 'Check out this discovery on Tavilink!';
+
+  switch(platform) {
+    case 'facebook':
+      window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
+      break;
+    case 'twitter':
+      window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(url), '_blank');
+      break;
+    case 'whatsapp':
+      window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank');
+      break;
+    case 'telegram':
+      window.open('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text), '_blank');
+      break;
+    case 'copy':
+      navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
+      break;
+    case 'sms':
+      window.open('sms:?body=' + encodeURIComponent(text + ' ' + url), '_blank');
+      break;
+    case 'email':
+      window.open('mailto:?subject=Tavilink Discovery&body=' + encodeURIComponent(text + '\n\n' + url), '_blank');
+      break;
+    case 'more':
+      if (navigator.share) {
+        navigator.share({ title: 'Tavilink', text: text, url: url });
+      }
+      break;
+  }
+  closeShare();
+}
+
+// ===================== EXPLORE =====================
+function renderExplore() {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="h-full overflow-y-auto scrollbar-hide pb-20 pt-14">
+      <div class="p-4">
+        <div class="relative mb-4">
+          <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-lg" style="color: var(--text-secondary);"></i>
+          <input type="text" id="explore-search" placeholder="${t('search')}" 
+            class="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none theme-transition" 
+            style="background-color: var(--input-bg); color: var(--text-primary);"
+            oninput="searchPosts(this.value)">
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto scrollbar-hide mb-4">
+          ${categories.map(c => `
+            <button onclick="filterCategory('${c.id}')" 
+              class="px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition ${activeCategory === c.id ? 'bg-cyan-400 text-black' : ''}" 
+              style="background-color: ${activeCategory === c.id ? '' : 'var(--input-bg)'}; color: ${activeCategory === c.id ? '' : 'var(--text-secondary)'};">
+              ${c.label}
+            </button>
+          `).join('')}
+        </div>
+
+        <div id="explore-grid" class="grid grid-cols-2 gap-2"></div>
+      </div>
+    </div>
+  `;
+
+  loadExplorePosts();
+}
+
+function loadExplorePosts() {
+  const grid = document.getElementById('explore-grid');
+  grid.innerHTML = Array(4).fill(0).map(() => `
+    <div class="aspect-square rounded-xl skeleton"></div>
+  `).join('');
+
+  let q = db.collection('posts').orderBy('createdAt', 'desc').limit(20);
+  if (activeCategory !== 'all') {
+    q = db.collection('posts').where('category', '==', activeCategory).orderBy('createdAt', 'desc').limit(20);
+  }
+
+  const unsub = q.onSnapshot(snapshot => {
+    if (snapshot.empty) {
+      grid.innerHTML = `<div class="col-span-2 text-center py-8" style="color: var(--text-secondary);">${t('noFound')}</div>`;
+      return;
+    }
+    grid.innerHTML = snapshot.docs.map(doc => {
+      const post = doc.data();
+      return `
+        <div class="relative aspect-square rounded-xl overflow-hidden cursor-pointer" onclick="openPostDetail('${doc.id}')">
+          <img src="${post.mediaURL}" class="w-full h-full object-cover" loading="lazy">
+          ${post.mediaType === 'video' ? `
+            <div class="absolute top-2 right-2 bg-black/50 rounded-full p-1">
+              <i class="ph ph-film-strip text-white text-xs"></i>
+            </div>
+          ` : ''}
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition flex items-end p-3">
+            <div class="text-white text-xs font-medium">
+              <i class="ph ph-heart-fill text-red-400"></i> ${post.likesCount || 0}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  });
+
+  unsubscribes.push(unsub);
+}
+
+function filterCategory(cat) {
+  activeCategory = cat;
+  renderExplore();
+}
+
+function searchPosts(query) {
+  if (!query.trim()) {
+    loadExplorePosts();
+    return;
+  }
+  const grid = document.getElementById('explore-grid');
+  const q = query.toLowerCase();
+
+  db.collection('posts').orderBy('createdAt', 'desc').limit(50).get().then(snapshot => {
+    const results = [];
+    snapshot.forEach(doc => {
+      const post = doc.data();
+      if ((post.caption && post.caption.toLowerCase().includes(q)) || 
+          (post.location && post.location.toLowerCase().includes(q))) {
+        results.push({ id: doc.id, ...post });
+      }
+    });
+
+    if (results.length === 0) {
+      grid.innerHTML = `<div class="col-span-2 text-center py-8" style="color: var(--text-secondary);">${t('noFound')}</div>`;
+      return;
+    }
+
+    grid.innerHTML = results.map(post => `
+      <div class="relative aspect-square rounded-xl overflow-hidden cursor-pointer" onclick="openPostDetail('${post.id}')">
+        <img src="${post.mediaURL}" class="w-full h-full object-cover" loading="lazy">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 hover:opacity-100 transition flex items-end p-3">
+          <div class="text-white text-xs font-medium">
+            <i class="ph ph-heart-fill text-red-400"></i> ${post.likesCount || 0}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function openPostDetail(postId) {
+  // For now, scroll to post in home or show a simple view
+  setView('home');
+  setTimeout(() => {
+    const el = document.getElementById('post-' + postId);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, 100);
+}
+
+// ===================== UPLOAD =====================
+function renderUpload() {
+  selectedFile = null;
+  selectedCategory = null;
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="h-full overflow-y-auto scrollbar-hide pb-20 pt-14">
+      <div class="p-4 space-y-4">
+        <div class="text-center">
+          <h2 class="text-2xl font-bold mb-1" style="color: var(--text-primary);" data-t="shareDiscovery">${t('shareDiscovery')}</h2>
+          <p class="text-sm" style="color: var(--text-secondary);" data-t="selectPhoto">${t('selectPhoto')}</p>
+        </div>
+
+        <div id="upload-preview-area" class="relative rounded-2xl overflow-hidden aspect-square theme-transition flex flex-col items-center justify-center cursor-pointer" style="background-color: var(--input-bg); border: 2px dashed var(--border-color);" onclick="document.getElementById('upload-input').click()">
+          <i class="ph ph-camera text-5xl mb-2" style="color: var(--text-secondary);"></i>
+          <span class="text-sm" style="color: var(--text-secondary);" data-t="selectPhoto">${t('selectPhoto')}</span>
+          <span class="text-xs mt-1" style="color: var(--text-secondary); opacity: 0.6;" data-t="maxSize">${t('maxSize')}</span>
+        </div>
+        <input type="file" id="upload-input" accept="image/*,video/*" class="hidden" onchange="handleFileSelect(event)">
+
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider mb-2 block" style="color: var(--text-secondary);" data-t="caption">${t('caption')}</label>
+          <textarea id="upload-caption" rows="3" placeholder="${t('describePlace')}" class="w-full rounded-xl p-3 text-sm outline-none resize-none theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);"></textarea>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider mb-2 block" style="color: var(--text-secondary);" data-t="location">${t('location')}</label>
+          <div class="relative">
+            <i class="ph ph-map-pin absolute left-4 top-1/2 -translate-y-1/2 text-lg" style="color: var(--text-secondary);"></i>
+            <input type="text" id="upload-location" placeholder="Add location..." class="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider mb-2 block" style="color: var(--text-secondary);" data-t="category">${t('category')}</label>
+          <div class="flex flex-wrap gap-2">
+            ${categories.filter(c => c.id !== 'all').map(c => `
+              <button onclick="selectUploadCategory('${c.id}')" id="cat-btn-${c.id}" class="px-4 py-2 rounded-full text-xs font-semibold transition" style="background-color: var(--input-bg); color: var(--text-secondary);">
+                ${c.label}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <button onclick="submitPost()" class="w-full bg-gradient-to-r from-cyan-400 to-blue-600 text-black font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/25 active:scale-95 transition-transform" data-t="postTo">
+          ${t('postTo')}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function selectUploadCategory(catId) {
+  selectedCategory = catId;
+  categories.filter(c => c.id !== 'all').forEach(c => {
+    const btn = document.getElementById('cat-btn-' + c.id);
+    if (btn) {
+      if (c.id === catId) {
+        btn.style.backgroundColor = 'var(--accent)';
+        btn.style.color = '#000';
+      } else {
+        btn.style.backgroundColor = 'var(--input-bg)';
+        btn.style.color = 'var(--text-secondary)';
+      }
+    }
+  });
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('File too large. Max 5MB.');
+    return;
+  }
+  selectedFile = file;
+
+  const preview = document.getElementById('upload-preview-area');
+  const url = URL.createObjectURL(file);
+
+  if (file.type.startsWith('video')) {
+    preview.innerHTML = `
+      <video src="${url}" class="w-full h-full object-cover" loop muted playsinline></video>
+      <button onclick="event.stopPropagation(); openVideoEditor()" class="absolute bottom-3 right-3 bg-black/60 backdrop-blur text-white px-3 py-1.5 rounded-lg text-xs font-medium">
+        <i class="ph ph-film-strip"></i> Edit
+      </button>
+    `;
+    preview.style.border = 'none';
+  } else {
+    preview.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+    preview.style.border = 'none';
+  }
+}
+
+async function submitPost() {
+  if (!selectedFile) {
+    showToast('Please select a photo or video');
+    return;
+  }
+
+  const caption = document.getElementById('upload-caption').value.trim();
+  const location = document.getElementById('upload-location').value.trim();
+
+  try {
+    showLoading(true);
+
+    // Upload media to Firebase Storage
+    const ext = selectedFile.name.split('.').pop();
+    const filename = `posts/${currentUser.uid}/${Date.now()}.${ext}`;
+    const ref = storage.ref(filename);
+    await ref.put(selectedFile);
+    const mediaURL = await ref.getDownloadURL();
+
+    // Create post in Firestore
+    await db.collection('posts').add({
+      authorId: currentUser.uid,
+      authorName: currentUserData.displayName || 'User',
+      authorAvatar: currentUserData.photoURL || DEFAULT_AVATAR,
+      caption: caption,
+      location: location,
+      category: selectedCategory || 'nature',
+      mediaURL: mediaURL,
+      mediaType: selectedFile.type.startsWith('video') ? 'video' : 'image',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      likesCount: 0,
+      commentsCount: 0,
+      savesCount: 0,
+      likedBy: [],
+      savedBy: []
+    });
+
+    showToast('Posted successfully!');
+    setView('home');
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ===================== VIDEO EDITOR =====================
+function openVideoEditor() {
+  if (!selectedFile || !selectedFile.type.startsWith('video')) return;
+  const modal = document.getElementById('editor-modal');
+  const video = document.getElementById('editor-video');
+  video.src = URL.createObjectURL(selectedFile);
+  video.play().catch(() => {});
+  modal.classList.remove('hidden');
+}
+
+function closeEditor() {
+  document.getElementById('editor-modal').classList.add('hidden');
+  const video = document.getElementById('editor-video');
+  video.pause();
+}
+
+function applyEditorChanges() {
+  closeEditor();
+  showToast('Filter settings applied (preview only)');
+}
+
+function updateTrim() {
+  const start = document.getElementById('trim-start').value;
+  const end = document.getElementById('trim-end').value;
+  document.getElementById('trim-start-handle').style.left = start + '%';
+  document.getElementById('trim-end-handle').style.left = end + '%';
+  document.getElementById('trim-time').textContent = `0:${Math.floor(start/6.66)} - 0:${Math.floor(end/6.66)}`;
+}
+
+function setFilter(filter) {
+  editorFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  applyVideoStyles();
+}
+
+function adjustVideo(type, value) {
+  if (type === 'brightness') editorBrightness = value;
+  if (type === 'contrast') editorContrast = value;
+  if (type === 'saturate') editorSaturate = value;
+  applyVideoStyles();
+}
+
+function applyVideoStyles() {
+  const video = document.getElementById('editor-video');
+  const brightness = editorBrightness / 100;
+  const contrast = editorContrast / 100;
+  const saturate = editorSaturate / 100;
+  video.style.filter = `${editorFilter} brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`;
+}
+
+// ===================== MAP =====================
+function renderMap() {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="h-full w-full relative pt-14">
+      <div id="map"></div>
+      <div class="absolute top-16 left-4 right-4 z-[400]">
+        <div class="relative">
+          <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-lg" style="color: var(--text-secondary);"></i>
+          <input type="text" id="map-search" placeholder="${t('search')}" 
+            class="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none shadow-lg theme-transition" 
+            style="background-color: var(--bg-card); color: var(--text-primary);">
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    initMap();
+  }, 100);
+}
+
+function initMap() {
+  if (mapInstance) {
+    mapInstance.remove();
+  }
+
+  mapInstance = L.map('map', { zoomControl: false }).setView([20, 0], 2);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(mapInstance);
+
+  // Load posts with location
+  db.collection('posts').where('location', '!=', '').limit(50).get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const post = doc.data();
+      // For demo, randomize coordinates around popular areas if no real coords
+      const lat = post.lat || (Math.random() * 140 - 70);
+      const lng = post.lng || (Math.random() * 360 - 180);
+
+      const marker = L.marker([lat, lng]).addTo(mapInstance);
+      marker.bindPopup(`
+        <div class="p-1" style="min-width: 200px;">
+          <img src="${post.mediaURL}" class="w-full h-32 object-cover rounded-lg mb-2">
+          <div class="font-bold text-sm">${post.location}</div>
+          <div class="text-xs opacity-70 line-clamp-2">${post.caption || ''}</div>
+        </div>
+      `);
+      mapMarkers.push(marker);
+    });
+  });
+}
+
+// ===================== PROFILE =====================
+function renderProfile(userId = null) {
+  const targetId = userId || currentUser.uid;
+  const isOwn = targetId === currentUser.uid;
+
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="h-full overflow-y-auto scrollbar-hide pb-20 pt-14">
+      <div id="profile-content">
+        <div class="p-4 space-y-4">
+          <div class="relative h-40 rounded-2xl overflow-hidden theme-transition skeleton" style="background-color: var(--input-bg);"></div>
+          <div class="flex justify-center -mt-12 relative z-10">
+            <div class="w-24 h-24 rounded-full skeleton"></div>
+          </div>
+          <div class="text-center space-y-2">
+            <div class="h-5 w-32 skeleton mx-auto"></div>
+            <div class="h-3 w-24 skeleton mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  db.collection('users').doc(targetId).get().then(userDoc => {
+    if (!userDoc.exists) return;
+    const user = userDoc.data();
+
+    // Get user's posts count
+    db.collection('posts').where('authorId', '==', targetId).get().then(postsSnap => {
+      const postsCount = postsSnap.size;
+
+      // Get followers/following counts
+      Promise.all([
+        db.collection('users').doc(targetId).collection('followers').get(),
+        db.collection('users').doc(targetId).collection('following').get()
+      ]).then(([followersSnap, followingSnap]) => {
+        const followersCount = followersSnap.size;
+        const followingCount = followingSnap.size;
+
+        const content = document.getElementById('profile-content');
+        content.innerHTML = `
+          <div class="p-4 space-y-4">
+            <div class="relative h-40 rounded-2xl overflow-hidden theme-transition" style="background-color: var(--input-bg);">
+              ${user.coverURL ? `<img src="${user.coverURL}" class="w-full h-full object-cover">` : ''}
+            </div>
+
+            <div class="flex justify-center -mt-12 relative z-10">
+              <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-400 to-purple-500 p-1">
+                <img src="${user.photoURL || DEFAULT_AVATAR}" class="w-full h-full rounded-full object-cover border-2 theme-transition" style="border-color: var(--bg-secondary);">
+              </div>
+            </div>
+
+            <div class="text-center">
+              <h2 class="text-xl font-bold" style="color: var(--text-primary);">${user.displayName || 'User'}</h2>
+              <p class="text-sm" style="color: var(--text-secondary);">@${user.username || 'user'}</p>
+              ${user.bio ? `<p class="text-sm mt-2 px-4" style="color: var(--text-primary);">${user.bio}</p>` : ''}
+            </div>
+
+            <div class="flex justify-center gap-6 py-2">
+              <div class="text-center">
+                <div class="text-lg font-bold" style="color: var(--text-primary);">${postsCount}</div>
+                <div class="text-xs" style="color: var(--text-secondary);" data-t="posts">${t('posts')}</div>
+              </div>
+              <div class="text-center">
+                <div class="text-lg font-bold" style="color: var(--text-primary);">${followersCount}</div>
+                <div class="text-xs" style="color: var(--text-secondary);" data-t="followers">${t('followers')}</div>
+              </div>
+              <div class="text-center">
+                <div class="text-lg font-bold" style="color: var(--text-primary);">${followingCount}</div>
+                <div class="text-xs" style="color: var(--text-secondary);">Following</div>
+              </div>
+            </div>
+
+            ${isOwn ? `
+              <button onclick="openProfileEdit()" class="w-full py-2.5 rounded-xl font-semibold text-sm theme-transition" style="background-color: var(--input-bg); color: var(--text-primary);" data-t="editProfile">
+                ${t('editProfile')}
+              </button>
+            ` : `
+              <button onclick="toggleFollow('${targetId}')" id="follow-btn-${targetId}" class="w-full py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-cyan-400 to-blue-600 text-black" data-t="follow">
+                ${t('follow')}
+              </button>
+            `}
+
+            <div class="grid grid-cols-3 gap-1">
+              ${postsSnap.docs.map(doc => {
+                const post = doc.data();
+                return `
+                  <div class="aspect-square rounded-lg overflow-hidden cursor-pointer" onclick="openPostDetail('${doc.id}')">
+                    <img src="${post.mediaURL}" class="w-full h-full object-cover" loading="lazy">
+                  </div>
+                `;
+              }).join('') || `<div class="col-span-3 text-center py-8 text-sm" style="color: var(--text-secondary);">${t('noPosts')}</div>`}
+            </div>
+          </div>
+        `;
+
+        if (!isOwn) {
+          // Check if following
+          db.collection('users').doc(currentUser.uid).collection('following').doc(targetId).get().then(followDoc => {
+            const btn = document.getElementById('follow-btn-' + targetId);
+            if (btn && followDoc.exists) {
+              btn.textContent = t('following');
+              btn.classList.remove('bg-gradient-to-r', 'from-cyan-400', 'to-blue-600', 'text-black');
+              btn.style.backgroundColor = 'var(--input-bg)';
+              btn.style.color = 'var(--text-primary)';
+            }
+          });
+        }
+      });
+    });
+  });
+}
+
+function showUserProfile(userId) {
+  setView('userProfile', { userId });
+}
+
+async function toggleFollow(targetId) {
+  const followRef = db.collection('users').doc(currentUser.uid).collection('following').doc(targetId);
+  const followerRef = db.collection('users').doc(targetId).collection('followers').doc(currentUser.uid);
+  const doc = await followRef.get();
+
+  if (doc.exists) {
+    await followRef.delete();
+    await followerRef.delete();
+    showToast('Unfollowed');
+  } else {
+    await followRef.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await followerRef.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    showToast('Following!');
+  }
+  renderProfile(targetId);
+}
+
+// ===================== PROFILE EDIT =====================
+function openProfileEdit() {
+  document.getElementById('edit-display-name').value = currentUserData.displayName || '';
+  document.getElementById('edit-username').value = currentUserData.username || '';
+  document.getElementById('edit-bio').value = currentUserData.bio || '';
+  document.getElementById('edit-avatar-preview').src = currentUserData.photoURL || DEFAULT_AVATAR;
+  document.getElementById('edit-cover-preview').src = currentUserData.coverURL || '';
+  document.getElementById('theme-icon').className = isDark ? 'ph ph-moon' : 'ph ph-sun';
+  document.getElementById('theme-text').textContent = t(isDark ? 'darkMode' : 'lightMode');
+  document.getElementById('profile-edit-modal').classList.remove('hidden');
+}
+
+function closeProfileEdit() {
+  document.getElementById('profile-edit-modal').classList.add('hidden');
+}
+
+async function saveProfileEdit() {
+  const displayName = document.getElementById('edit-display-name').value.trim();
+  const username = document.getElementById('edit-username').value.trim();
+  const bio = document.getElementById('edit-bio').value.trim();
+
+  try {
+    showLoading(true);
+    await db.collection('users').doc(currentUser.uid).update({
+      displayName: displayName || currentUserData.displayName,
+      username: username || currentUserData.username,
+      bio: bio
+    });
+    currentUserData = { ...currentUserData, displayName, username, bio };
+    showToast('Profile updated');
+    closeProfileEdit();
+    renderProfile();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function handleEditAvatar(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    showLoading(true);
+    const ref = storage.ref(`users/${currentUser.uid}/avatar.jpg`);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    await db.collection('users').doc(currentUser.uid).update({ photoURL: url });
+    currentUserData.photoURL = url;
+    document.getElementById('edit-avatar-preview').src = url;
+    showToast('Avatar updated');
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function handleEditCover(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    showLoading(true);
+    const ref = storage.ref(`users/${currentUser.uid}/cover.jpg`);
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+    await db.collection('users').doc(currentUser.uid).update({ coverURL: url });
+    currentUserData.coverURL = url;
+    document.getElementById('edit-cover-preview').src = url;
+    showToast('Cover updated');
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ===================== SEED DEMO DATA =====================
+async function seedDemoData() {
+  if (!currentUser) return;
+  showLoading(true);
+
+  const demoPosts = [
+    {
+      caption: 'The most beautiful sunset I have ever seen in Santorini, Greece. The white buildings against the orange sky is absolutely magical!',
+      location: 'Santorini, Greece',
+      category: 'beach',
+      mediaURL: 'https://images.unsplash.com/photo-1613395877344-13d4c79e4284?w=600&h=600&fit=crop',
+      mediaType: 'image',
+      likesCount: 1243,
+      commentsCount: 89,
+      savesCount: 456
+    },
+    {
+      caption: 'Hidden waterfall in Bali. Took a 3 hour hike to get here but it was worth every step.',
+      location: 'Bali, Indonesia',
+      category: 'nature',
+      mediaURL: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&h=600&fit=crop',
+      mediaType: 'image',
+      likesCount: 892,
+      commentsCount: 45,
+      savesCount: 234
+    },
+    {
+      caption: 'Street food in Tokyo is on another level. This ramen shop has been here for 50 years!',
+      location: 'Tokyo, Japan',
+      category: 'food',
+      mediaURL: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&h=600&fit=crop',
+      mediaType: 'image',
+      likesCount: 2156,
+      commentsCount: 167,
+      savesCount: 890
+    },
+    {
+      caption: 'Northern Lights in Iceland. A dream come true!',
+      location: 'Reykjavik, Iceland',
+      category: 'nature',
+      mediaURL: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=600&h=600&fit=crop',
+      mediaType: 'image',
+      likesCount: 3421,
+      commentsCount: 234,
+      savesCount: 1203
+    },
+    {
+      caption: 'Ancient ruins of Machu Picchu. The history here is incredible.',
+      location: 'Machu Picchu, Peru',
+      category: 'culture',
+      mediaURL: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=600&h=600&fit=crop',
+      mediaType: 'image',
+      likesCount: 1567,
+      commentsCount: 98,
+      savesCount: 567
+    },
+    {
+      caption: 'Swiss Alps in summer. The green meadows and snow-capped peaks are breathtaking.',
+      location: 'Swiss Alps, Switzerland',
+      category: 'mountain',
+      mediaURL: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=600&h=600&fit=crop',
+      mediaType: 'image',
+      likesCount: 2789,
+      commentsCount: 145,
+      savesCount: 987
+    }
+  ];
+
+  for (const post of demoPosts) {
+    await db.collection('posts').add({
+      authorId: currentUser.uid,
+      authorName: currentUserData.displayName || 'Traveler',
+      authorAvatar: currentUserData.photoURL || DEFAULT_AVATAR,
+      ...post,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      likedBy: [],
+      savedBy: []
+    });
+  }
+
+  showLoading(false);
+  showToast('Demo data seeded!');
+  setView('home');
+}
+
+// ===================== KEYBOARD SHORTCUTS =====================
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeComments();
+    closeShare();
+    closePostOptions();
+    closeEditor();
+    closeProfileEdit();
+    closeLanguageModal();
+    closeTerms();
+  }
+});
+
+// Initialize
+updateTranslations();
+</script>
+</body>
+</html>
